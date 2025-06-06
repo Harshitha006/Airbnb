@@ -1,0 +1,27 @@
+{
+  "name": "airbnb",
+  "version": "1.0.0",
+  "description": "Major Project.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Harshitha006/Airbnb.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/Harshitha006/Airbnb/issues"
+  },
+  "homepage": "https://github.com/Harshitha006/Airbnb#readme",
+  "dependencies": {
+    "ejs": "^3.1.10",
+    "express": "^5.1.0",
+    "method-override": "^3.0.0",
+    "mongoose": "^8.15.1"
+  }
+}
