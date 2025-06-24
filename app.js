@@ -5,6 +5,7 @@ const Listing = require("./models/listing.js");
 const path = require("path");
 const methodOverride = require("method-override");
 const MONGO_URL = "mongodb://127.0.0.1:27017/wanderlust";
+const ejsMate = require("ejs-mate");
 
 main().then(()=>{
     console.log("Connected to MongoDB");
@@ -16,26 +17,35 @@ async function main() {
     await mongoose.connect(MONGO_URL);
 }
 
-app.set("view engine","ejs");
-app.set("views", path.join(__dirname,"views"));
 app.use(express.urlencoded({extended:true}));
 app.use(methodOverride("_method"));
 
+//below order should be maintained! 
+app.engine('ejs',ejsMate);
+app.set("view engine","ejs");
+// You must register ejs-mate before telling Express to use EJS as the view engine. Otherwise, it defaults to standard EJS — which doesn’t support layout.
+app.set("views", path.join(__dirname,"views"));
+console.log("Views path is:", path.join(__dirname, "views"));
+
+app.get("/", (req, res) => {
+  res.render("home", { title: "Home Page" });
+});
 
 app.get("/",(req,res)=>{
     res.send("Hi,I am root");
 });
 
+
 //Index Route 
 //GET     /listings   =>  returns all list
 app.get("/listings",async (req,res) => {
     const allListings = await Listing.find({});
-    res.render("listings/index", {allListings});
+    res.render("listings/index.ejs", {allListings});
 });
 
 //New Route
 app.get("/listings/new", (req,res) => {
-    res.render("listings/new.ejs");
+    res.render("listings/new");
 });
 
 //Read : Show Route
@@ -60,13 +70,13 @@ app.get("/listings/:id/edit",async (req,res) => {
     let {id} = req.params;
     const listing = await Listing.findById(id);
     res.render("listings/edit.ejs", {listing});
-})
+});
 //Update Route
 app.put("/listings/:id",async (req,res) => {
     let {id} = req.params;
     await Listing.findByIdAndUpdate(id, {...req.body.listing});
     res.redirect(`/listings/${id}`);
-})
+});
 
 //Delete Route
 //DELETE    /listings/:id
@@ -75,14 +85,17 @@ app.delete("/listings/:id", async (req,res) => {
     let deletedListing = await Listing.findByIdAndDelete(id);
     console.log(deletedListing);
     res.redirect("/listings");
-})
-
-
-app.listen(8080,()=>{
-    console.log("Server is listening to port 8080");
 });
 
-// app.get("/testListing",async (req,res)=>{
+
+// app.listen(8080,()=>{
+//     console.log("Server is listening to port 8080");
+// });
+
+app.listen(3030,()=>{
+    console.log("Server is listening to port 3030");
+});
+// app.post("/testListing",async (req,res)=>{
 //     let sampleListing = new Listing({
 //         "title": "My New Villa",
 //         "description" : "By the beach",
