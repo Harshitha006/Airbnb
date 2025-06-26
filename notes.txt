@@ -1,4 +1,0 @@
-What is EJS Mate?
-Helps in creating templates/layouts. Eg., navbar.
-
-similar to the logic of includes/partials

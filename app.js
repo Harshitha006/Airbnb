@@ -5,7 +5,7 @@ const Listing = require("./models/listing.js");
 const path = require("path");
 const methodOverride = require("method-override");
 const MONGO_URL = "mongodb://127.0.0.1:27017/wanderlust";
-const ejsMate = require("ejs-mate");
+// const ejsMate = require("ejs-mate");
 
 main().then(()=>{
     console.log("Connected to MongoDB");
@@ -19,9 +19,9 @@ async function main() {
 
 app.use(express.urlencoded({extended:true}));
 app.use(methodOverride("_method"));
-
+app.use(express.static(path.join(__dirname, "public")));
 //below order should be maintained! 
-app.engine('ejs',ejsMate);
+// app.engine('ejs',ejsMate);
 app.set("view engine","ejs");
 // You must register ejs-mate before telling Express to use EJS as the view engine. Otherwise, it defaults to standard EJS — which doesn’t support layout.
 app.set("views", path.join(__dirname,"views"));
@@ -31,37 +31,64 @@ app.get("/", (req, res) => {
   res.render("home", { title: "Home Page" });
 });
 
-app.get("/",(req,res)=>{
-    res.send("Hi,I am root");
-});
+// app.get("/",(req,res)=>{
+//     res.send("Hi,I am root");
+// });
 
 
 //Index Route 
 //GET     /listings   =>  returns all list
 app.get("/listings",async (req,res) => {
     const allListings = await Listing.find({});
-    res.render("listings/index.ejs", {allListings});
+    res.render("listings/index", {
+        allListings,
+        title: "All Listings"
+    });
 });
 
 //New Route
 app.get("/listings/new", (req,res) => {
-    res.render("listings/new");
+    res.render("listings/new" ,{
+        title: "All Listings"
+    });
 });
 
 //Read : Show Route
 app.get("/listings/:id",async (req,res) => {
     let {id} = req.params;
     const listing = await Listing.findById(id);
-    res.render("listings/show.ejs", {listing});
+    res.render("listings/show.ejs", {
+        listing,
+        title: "Listing Details"
+    });
 });
 
 //Create Route
-app.post("/listings", async (req,res) => {
-    // let {title,description,price,location} = req.body;
-    const newlisting = new Listing(req.body.listing);
+app.post("/listings", async (req, res) => {
+    const defaultImageUrl = "https://plus.unsplash.com/premium_photo-1689609950112-d66095626efb?q=80&w=687&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D";
+
+    const listingData = req.body.listing;
+
+    // Ensure `image` exists, then check if `image.url` is empty
+    if (!listingData.image) {
+        listingData.image = {};
+    }
+    if (!listingData.image.url || listingData.image.url.trim() === "") {
+        listingData.image.url = defaultImageUrl;
+    }
+
+    const newlisting = new Listing(listingData);
     await newlisting.save();
     res.redirect("/listings");
 });
+
+// app.post("/listings", async (req,res) => {
+//     // let {title,description,price,location} = req.body;
+//     const newlisting = new Listing(req.body.listing);
+//     await newlisting.save();
+//     res.redirect("/listings");
+// });
+
 
 //Update : Edit & Update Route
 //GET   /listings/:id/edit  -> edit form -> submit
@@ -69,7 +96,10 @@ app.post("/listings", async (req,res) => {
 app.get("/listings/:id/edit",async (req,res) => {
     let {id} = req.params;
     const listing = await Listing.findById(id);
-    res.render("listings/edit.ejs", {listing});
+    res.render("listings/edit.ejs", {
+        listing,
+        title: "Edit Listing"
+    });
 });
 //Update Route
 app.put("/listings/:id",async (req,res) => {
@@ -92,8 +122,8 @@ app.delete("/listings/:id", async (req,res) => {
 //     console.log("Server is listening to port 8080");
 // });
 
-app.listen(3030,()=>{
-    console.log("Server is listening to port 3030");
+app.listen(8080,()=>{
+    console.log("Server is listening to port 8080");
 });
 // app.post("/testListing",async (req,res)=>{
 //     let sampleListing = new Listing({

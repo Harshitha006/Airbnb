@@ -1,2 +1,11 @@
-<% layout('layouts/boilerplate') %>
-<h1>Welcome to wanderlust</h1>
+<%- include('partials/header') %>
+
+<div class="container mt-5">
+  <div class="text-center">
+    <h1 class="display-4">Welcome to WanderLust</h1>
+    <p class="lead">Find and list your dream destination.</p>
+    <a href="/listings" class="btn btn-primary mt-3 home-btn">Explore Listings</a>
+  </div>
+</div>
+
+<%- include('partials/footer') %>
