@@ -1,3 +1,4 @@
+
 const express = require("express");
 const app = express();
 const mongoose = require("mongoose");
@@ -5,7 +6,6 @@ const Listing = require("./models/listing.js");
 const path = require("path");
 const methodOverride = require("method-override");
 const MONGO_URL = "mongodb://127.0.0.1:27017/wanderlust";
-// const ejsMate = require("ejs-mate");
 
 main().then(()=>{
     console.log("Connected to MongoDB");
@@ -20,10 +20,7 @@ async function main() {
 app.use(express.urlencoded({extended:true}));
 app.use(methodOverride("_method"));
 app.use(express.static(path.join(__dirname, "public")));
-//below order should be maintained! 
-// app.engine('ejs',ejsMate);
 app.set("view engine","ejs");
-// You must register ejs-mate before telling Express to use EJS as the view engine. Otherwise, it defaults to standard EJS — which doesn’t support layout.
 app.set("views", path.join(__dirname,"views"));
 console.log("Views path is:", path.join(__dirname, "views"));
 
@@ -31,13 +28,7 @@ app.get("/", (req, res) => {
   res.render("home", { title: "Home Page" });
 });
 
-// app.get("/",(req,res)=>{
-//     res.send("Hi,I am root");
-// });
-
-
 //Index Route 
-//GET     /listings   =>  returns all list
 app.get("/listings",async (req,res) => {
     const allListings = await Listing.find({});
     res.render("listings/index", {
@@ -49,7 +40,7 @@ app.get("/listings",async (req,res) => {
 //New Route
 app.get("/listings/new", (req,res) => {
     res.render("listings/new" ,{
-        title: "All Listings"
+        title: "Add New Listing"
     });
 });
 
@@ -65,34 +56,48 @@ app.get("/listings/:id",async (req,res) => {
 
 //Create Route
 app.post("/listings", async (req, res) => {
-    const defaultImageUrl = "https://plus.unsplash.com/premium_photo-1689609950112-d66095626efb?q=80&w=687&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D";
+    try {
+        const defaultImageUrl = "https://plus.unsplash.com/premium_photo-1689609950112-d66095626efb?q=80&w=687&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D";
 
-    const listingData = req.body.listing;
+        const listingData = req.body.listing;
 
-    // Ensure `image` exists, then check if `image.url` is empty
-    if (!listingData.image) {
-        listingData.image = {};
+        // Validate required fields manually
+        const requiredFields = ['title', 'description', 'price', 'country', 'location'];
+        for (const field of requiredFields) {
+            if (!listingData[field] || listingData[field].toString().trim() === '') {
+                return res.status(400).send(`Error: "${field}" is required.`);
+            }
+        }
+
+        // Assign default image if none is provided
+        if (!listingData.image || listingData.image.trim() === '') {
+            listingData.image = {
+                filename: "listingimage",
+                url: defaultImageUrl
+            };
+            console.log("📸 Default image assigned in CREATE:", listingData.image.url);
+        } else {
+            // If image URL is provided, format it properly
+            listingData.image = {
+                filename: "listingimage",
+                url: listingData.image
+            };
+        }
+
+        // Convert price to number
+        listingData.price = Number(listingData.price);
+
+        const newListing = new Listing(listingData);
+        await newListing.save();
+
+        res.redirect("/listings");
+    } catch (err) {
+        console.error("Error creating listing:", err);
+        res.status(500).send("Internal Server Error");
     }
-    if (!listingData.image.url || listingData.image.url.trim() === "") {
-        listingData.image.url = defaultImageUrl;
-    }
-
-    const newlisting = new Listing(listingData);
-    await newlisting.save();
-    res.redirect("/listings");
 });
 
-// app.post("/listings", async (req,res) => {
-//     // let {title,description,price,location} = req.body;
-//     const newlisting = new Listing(req.body.listing);
-//     await newlisting.save();
-//     res.redirect("/listings");
-// });
-
-
 //Update : Edit & Update Route
-//GET   /listings/:id/edit  -> edit form -> submit
-//PUT   /listings/:id
 app.get("/listings/:id/edit",async (req,res) => {
     let {id} = req.params;
     const listing = await Listing.findById(id);
@@ -101,40 +106,67 @@ app.get("/listings/:id/edit",async (req,res) => {
         title: "Edit Listing"
     });
 });
+
 //Update Route
-app.put("/listings/:id",async (req,res) => {
-    let {id} = req.params;
-    await Listing.findByIdAndUpdate(id, {...req.body.listing});
-    res.redirect(`/listings/${id}`);
+app.put("/listings/:id", async (req, res) => {
+    try {
+        const { id } = req.params;
+        const listingData = req.body.listing;
+        const defaultImageUrl = "https://plus.unsplash.com/premium_photo-1689609950112-d66095626efb?q=80&w=687&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D";
+
+        // Validate required fields
+        const requiredFields = ['title', 'description', 'price', 'country', 'location'];
+        for (const field of requiredFields) {
+            if (!listingData[field] || listingData[field].toString().trim() === '') {
+                return res.status(400).send(`Error: "${field}" is required.`);
+            }
+        }
+
+        // Handle image assignment - assign default if empty
+        if (!listingData.image || listingData.image.trim() === '') {
+            listingData.image = {
+                filename: "listingimage",
+                url: defaultImageUrl
+            };
+            console.log("📸 Default image assigned in UPDATE:", listingData.image.url);
+        } else {
+            // If image URL is provided, format it properly
+            listingData.image = {
+                filename: "listingimage",
+                url: listingData.image
+            };
+        }
+
+        // Convert price to number
+        listingData.price = Number(listingData.price);
+
+        await Listing.findByIdAndUpdate(id, listingData);
+        res.redirect(`/listings/${id}`);
+    } catch (err) {
+        console.error("Error updating listing:", err);
+        res.status(500).send("Internal Server Error");
+    }
 });
 
 //Delete Route
-//DELETE    /listings/:id
-app.delete("/listings/:id", async (req,res) => {
-    let {id} = req.params;
-    let deletedListing = await Listing.findByIdAndDelete(id);
-    console.log(deletedListing);
-    res.redirect("/listings");
+app.delete("/listings/:id", async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        const deletedListing = await Listing.findByIdAndDelete(id);
+
+        if (!deletedListing) {
+            return res.status(404).send("Listing not found or already deleted");
+        }
+
+        console.log("Deleted:", deletedListing.title);
+        res.redirect("/listings");
+    } catch (err) {
+        console.error("Error deleting listing:", err);
+        res.status(500).send("Internal Server Error");
+    }
 });
-
-
-// app.listen(8080,()=>{
-//     console.log("Server is listening to port 8080");
-// });
 
 app.listen(8080,()=>{
     console.log("Server is listening to port 8080");
 });
-// app.post("/testListing",async (req,res)=>{
-//     let sampleListing = new Listing({
-//         "title": "My New Villa",
-//         "description" : "By the beach",
-//         "price": 1200,
-//         "location": "Calangute, Goa",
-//         "country" : "India",
-//     });
-
-//     await sampleListing.save();
-//     console.log("sample was saved");
-//     res.send("sample was saved");
-// });
